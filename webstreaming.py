@@ -1,5 +1,6 @@
 #import the necessary packages
 from singlemotiondetector import SingleMotionDetector
+from PoseModule import poseDetector
 from handtracking import handDetector
 from imutils.video import VideoStream
 from flask import Response
@@ -16,7 +17,7 @@ import mediapipe as mp
 global pTime
 global cTime
 cap = cv2.VideoCapture(1)
-detector = handDetector()
+detectorHand = handDetector()
 
 outputFrame = None
 lock = threading.Lock()
@@ -33,6 +34,9 @@ def detect_motion(frameCount):
     total = 0
     pTime =0
     cTime=0
+
+    detectorPose = poseDetector()
+
     while True:
         frame = vs.read()
         frame = imutils.resize(frame, width=600)
@@ -42,21 +46,22 @@ def detect_motion(frameCount):
         cv2.putText(frame, timestamp.strftime(
             "%A %d %B %Y %I:%M:%S%p"), (10, frame.shape[0] - 10),
             cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255), 1)
+
         if total > frameCount:
-            frame = detector.findHands(frame, draw=True )
-            lmList = detector.findPosition(frame, draw=False)
-            if len(lmList) != 0:
-                print(lmList[4])
+            frame = detectorPose.findPose(frame)
+            frame = detectorHand.findHands(frame)
+            lmList = detectorPose.findPosition(frame, draw=False)
+            # if len(lmList) != 0:
+            #     print(lmList[4])
             cTime = time.time()
             fps = 1 / (cTime - pTime)
             pTime = cTime
-        #     motion = md.detect(gray)
-        #     if motion is not None:
-        #         (thresh, (minX, minY, maxX, maxY)) = motion
-        #         cv2.rectangle(frame, (minX, minY), (maxX, maxY),
-        #             (0, 0, 255), 2)
 
-        # md.update(gray)
+
+        # if len(lmList) != 0:
+        #     print(lmList[14])
+        #     cv2.circle(img, (lmList[14][1], lmList[14][2]), 15, (0, 0, 255), cv2.FILLED)
+
         total += 1
         with lock:
             outputFrame = frame.copy()
